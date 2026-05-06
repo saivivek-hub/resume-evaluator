@@ -1,98 +1,65 @@
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-
-
 def simple_tokenize(text):
-    return [w.lower() for w in text.split() if len(w) > 2]
+    return set(text.lower().split())
 
 
 def evaluate_with_llm(candidate, job_desc):
 
-    skills = candidate.get("skills", "").lower()
-    project = candidate.get("project", "").lower()
-    experience = candidate.get("experience", 0)
-
-    candidate_text = f"{skills} {project}"
-
-    #  BASE SIMILARITY (STRICTER) 
-    vectorizer = TfidfVectorizer(stop_words="english")
-    vectors = vectorizer.fit_transform([job_desc, candidate_text])
-
-    similarity = cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
-
-    # Reduce impact (more strict)
-    score = similarity * 50   # was 40 → now tighter distribution
-
-    factors = []
-
-    #  JOB TOKEN MATCHING 
+    skills = simple_tokenize(candidate.get("skills", ""))
+    project = simple_tokenize(candidate.get("project", ""))
     job_tokens = simple_tokenize(job_desc)
 
-    if not job_tokens:
-        job_tokens = []
+    #  BASE MATCH 
+    total_tokens = len(job_tokens)
+    if total_tokens == 0:
+        total_tokens = 1
 
-    matches = 0
-    for token in job_tokens:
-        if token in skills or token in project:
-            matches += 1
+    match = len(job_tokens & (skills | project))
 
-    token_ratio = matches / max(len(job_tokens), 1)
+    # softer scoring (IMPORTANT CHANGE)
+    score = (match / total_tokens) * 60   # was too harsh before
 
-    # STRONGER PENALTY IF LOW MATCH
-    if token_ratio < 0.2:
-        score -= 15
-        factors.append("Low keyword match penalty")
+    factors = []
+    factors.append(f"{match}/{len(job_tokens)} keyword match")
+
+    #  SKILLS BONUS
+    skill_overlap = len(skills & job_tokens)
+    score += skill_overlap * 4
+
+    if skill_overlap > 0:
+        factors.append("Skill relevance detected")
+
+    #  EXPERIENCE (BALANCED) 
+    exp = candidate.get("experience", 0)
+
+    if exp >= 5:
+        score += 20
+        factors.append("Strong experience")
+    elif exp >= 2:
+        score += 12
+        factors.append("Moderate experience")
+    elif exp >= 1:
+        score += 6
+        factors.append("Basic experience")
     else:
-        score += token_ratio * 30
+        score += 2
+        factors.append("Fresher")
 
-    factors.append(f"{matches}/{len(job_tokens)} keyword matches")
+    #  PROJECT BOOST 
+    project_match = len(project & job_tokens)
 
-    #  STRICT SKILL CHECK 
-    required_skills = [
-        "python", "machine learning", "nlp",
-        "tensorflow", "pytorch", "data"
-    ]
-
-    skill_match = 0
-    for skill in required_skills:
-        if skill in job_desc.lower() and skill in skills:
-            skill_match += 1
-
-    score += skill_match * 5
-    factors.append(f"{skill_match} required skills matched")
-
-    #  EXPERIENCE SCORING (STRICT) 
-    if experience < 1:
-        score -= 10
-        factors.append("Very low experience penalty")
-    elif experience < 3:
-        score += 5
-        factors.append("Junior level")
-    elif experience < 5:
-        score += 8
-        factors.append("Mid-level experience")
-    else:
-        score += 10
-        factors.append("Senior experience")
-
-    #  PROJECT QUALITY CHECK 
-    if len(project.split()) < 10:
-        score -= 10
-        factors.append("Weak project description penalty")
-
-    if "nlp" in job_desc.lower() and "nlp" in project:
-        score += 8
-        factors.append("Relevant NLP project")
+    if project_match > 0:
+        score += project_match * 3
+        factors.append("Project relevance")
 
     #  FINAL NORMALIZATION 
     score = max(0, min(100, int(score)))
 
-    # STRICT DECISION LOGIC 
-    if score >= 80:
+    #  DECISION 
+    if score >= 75:
         rec = "Strong Hire"
-    elif score >= 60:
+    elif score >= 55:
         rec = "Shortlisted"
-    elif score >= 40:
+    elif score >= 35:
         rec = "Needs Review"
     else:
         rec = "Not Shortlisted"
@@ -100,6 +67,6 @@ def evaluate_with_llm(candidate, job_desc):
     return {
         "score": score,
         "recommendation": rec,
-        "explanation": "Score computed using strict TF-IDF similarity + keyword weighting + penalties.",
+        "explanation": "Balanced scoring using keyword overlap + experience + project relevance.",
         "top_factors": factors[:4]
     }
