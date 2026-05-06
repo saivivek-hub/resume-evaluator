@@ -1,110 +1,162 @@
-def tokenize(text):
-    return set(text.lower().split())
+import streamlit as st
+import sqlite3
+from pypdf import PdfReader
+
+from evaluator import evaluate_with_llm
+from database import init_db, insert_application, get_all_applications, save_job, get_job
+
+#  INIT 
+init_db()
+
+st.set_page_config(page_title="AI ATS System", layout="wide")
+
+st.title(" AI-Powered ATS (Recruiter Screening System)")
+
+#  SESSION 
+if "admin_logged_in" not in st.session_state:
+    st.session_state.admin_logged_in = False
+
+page = st.sidebar.selectbox("Navigation", ["User", "Admin"])
+
+#  DUPLICATE CHECK 
+def is_duplicate(email):
+    conn = sqlite3.connect("applications.db")
+    c = conn.cursor()
+
+    c.execute("SELECT email FROM applications WHERE email=?", (email,))
+    exists = c.fetchone()
+
+    conn.close()
+
+    return exists is not None
 
 
-def evaluate_with_llm(candidate, job_desc):
+#  USER PAGE 
+if page == "User":
 
-    #  INPUTS 
-    skills = tokenize(candidate.get("skills", ""))
-    project = tokenize(candidate.get("project", ""))
-    resume = tokenize(candidate.get("resume", ""))
-    job_tokens = tokenize(job_desc)
+    st.header("Candidate Application Form")
 
-    experience = candidate.get("experience", 0)
+    name = st.text_input("Name")
+    email = st.text_input("Email")
+    skills = st.text_area("Skills")
+    experience = st.slider("Experience (years)", 0, 10)
+    education = st.text_input("Education")
+    project = st.text_area("Project Description")
 
-    factors = []
+    #  CV UPLOAD 
+    st.subheader(" Upload Resume (PDF)")
+    uploaded_file = st.file_uploader("Upload CV", type=["pdf"])
 
-    #  SAFETY CHECK 
-    if not job_tokens:
-        job_tokens = {"general"}
+    resume_text = ""
 
-    #  CORE MATCH 
-    combined_profile = skills | project | resume
+    if uploaded_file:
+        reader = PdfReader(uploaded_file)
+        for page in reader.pages:
+            resume_text += page.extract_text() or ""
 
-    match_count = len(job_tokens & combined_profile)
-    match_ratio = match_count / len(job_tokens)
+        st.success("Resume uploaded successfully!")
 
-    # FAIR SCORING CURVE (FIXED HARSHNESS)
-    score = match_ratio * 65
-    factors.append(f"{match_count} keyword matches found")
+    submitted = st.button(" Submit Application")
 
-    #  SKILL MATCH BOOST 
-    skill_match = len(job_tokens & skills)
-    score += skill_match * 4
+    if submitted:
 
-    if skill_match:
-        factors.append("Strong skill alignment")
+        if is_duplicate(email):
+            st.warning("email already exists")
+        else:
+            insert_application(
+                name,
+                email,
+                skills,
+                experience,
+                education,
+                project,
+                resume_text
+            )
 
-    #  EXPERIENCE (BALANCED) 
-    if experience <= 0:
-        score += 5
-        factors.append("Fresher considered fairly")
-    elif experience <= 2:
-        score += 10
-        factors.append("Junior level experience")
-    elif experience <= 5:
-        score += 15
-        factors.append("Mid-level experience")
+            st.success("Application submitted successfully!")
+
+#  ADMIN PAGE 
+elif page == "Admin":
+
+    st.header("🧑‍💼 Admin Panel")
+
+    #  LOGIN 
+    if not st.session_state.admin_logged_in:
+
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+
+        if st.button("Login"):
+            if username == "admin" and password == "12234":
+                st.session_state.admin_logged_in = True
+                st.rerun()
+            else:
+                st.error("Invalid credentials")
+
     else:
-        score += 20
-        factors.append("Senior experience")
 
-    #  PROJECT MATCH 
-    project_match = len(job_tokens & project)
-    score += project_match * 3
+        st.success("Welcome Admin")
 
-    if project_match:
-        factors.append("Relevant project experience")
+        if st.button("Logout"):
+            st.session_state.admin_logged_in = False
+            st.rerun()
 
-    #  RESUME MATCH 
-    resume_match = len(job_tokens & resume)
-    score += resume_match * 2
+        #  JOB DESCRIPTION 
+        job_desc = get_job()
 
-    #  BONUS LOGIC 
-    if match_ratio > 0.6 and experience >= 2:
-        score += 10
-        factors.append("High-quality candidate profile")
+        jd = st.text_area("Job Description", value=job_desc if job_desc else "")
 
-    #  FINAL SCORE 
-    score = max(0, min(100, round(score)))
+        if st.button("Save Job"):
+            save_job(jd)
+            st.success("Job saved successfully")
 
-    #  DECISION 
-    if score >= 80:
-        recommendation = "Strong Hire"
-    elif score >= 60:
-        recommendation = "Shortlisted"
-    elif score >= 40:
-        recommendation = "Needs Review"
-    else:
-        recommendation = "Not Shortlisted"
+        st.markdown("---")
 
-    #  EXPLANATION 
-    explanation_parts = []
+        #  APPLICATIONS 
+        data = get_all_applications()
 
-    if skill_match > 0:
-        explanation_parts.append("Good skill-job alignment")
-    else:
-        explanation_parts.append("Limited skill match")
+        if data and job_desc:
 
-    if project_match > 0:
-        explanation_parts.append("Relevant project experience")
-    else:
-        explanation_parts.append("Project relevance is weak")
+            st.subheader(" Ranked Candidates")
 
-    if experience > 2:
-        explanation_parts.append("Good experience level")
-    else:
-        explanation_parts.append("Entry-level candidate")
+            results = []
 
-    explanation = ", ".join(explanation_parts)
+            for row in data:
 
-    #  MISSING SKILLS 
-    missing_skills = list(job_tokens - skills)
+                candidate = {
+                    "name": row[1],
+                    "email": row[2],
+                    "skills": row[3],
+                    "experience": row[4],
+                    "education": row[5],
+                    "project": row[6],
+                    "resume": row[7]
+                }
 
-    return {
-        "score": score,
-        "recommendation": recommendation,
-        "explanation": explanation,
-        "top_factors": factors[:4],
-        "missing_skills": missing_skills[:6]
-    }
+                result = evaluate_with_llm(candidate, job_desc)
+
+                results.append({
+                    "Name": candidate["name"],
+                    "Email": candidate["email"],
+                    "Score": result["score"],
+                    "Recommendation": result["recommendation"],
+                    "Explanation": result["explanation"],
+                    "Missing Skills": ", ".join(result["missing_skills"])
+                })
+
+            # sort by score
+            results = sorted(results, key=lambda x: x["Score"], reverse=True)
+
+            for r in results:
+
+                st.markdown("---")
+                st.subheader(f"👤 {r['Name']}")
+
+                st.write(" Email:", r["Email"])
+                st.write(" Score:", r["Score"])
+                st.write(" Recommendation:", r["Recommendation"])
+                st.write(" Explanation:", r["Explanation"])
+                st.write(" Missing Skills:", r["Missing Skills"])
+
+        else:
+            st.info("No applications or job description found")
