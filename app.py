@@ -10,7 +10,7 @@ init_db()
 
 st.set_page_config(page_title="AI ATS System", layout="wide")
 
-st.title("🤖 AI-Powered ATS (Recruiter Screening System)")
+st.title(" AI-Powered ATS Recruiter Screening System")
 
 if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
@@ -34,48 +34,50 @@ def is_duplicate(email):
 # ================= USER PAGE =================
 if page == "User":
 
-    st.header("📄 Candidate Application Form")
+    st.header(" Candidate Application Form")
 
-    name = st.text_input("Name")
-    email = st.text_input("Email")
-    skills = st.text_area("Skills")
-    experience = st.slider("Experience (years)", 0, 10)
-    education = st.text_input("Education")
-    project = st.text_area("Project Description")
+    # ✅ FIXED: USE FORM (VERY IMPORTANT)
+    with st.form("application_form"):
 
-    st.subheader("📎 Upload Resume (PDF)")
-    uploaded_file = st.file_uploader("Upload CV", type=["pdf"])
+        name = st.text_input("Name")
+        email = st.text_input("Email")
+        skills = st.text_area("Skills")
+        experience = st.slider("Experience (years)", 0, 10)
+        education = st.text_input("Education")
+        project = st.text_area("Project Description")
 
-    resume_text = ""
+        st.subheader("📎 Upload Resume (PDF)")
+        uploaded_file = st.file_uploader("Upload CV", type=["pdf"])
 
-    if uploaded_file:
-        reader = PdfReader(uploaded_file)
-        for p in reader.pages:
-            resume_text += p.extract_text() or ""
+        resume_text = ""
 
-        st.success("Resume uploaded successfully!")
+        if uploaded_file:
+            reader = PdfReader(uploaded_file)
+            for p in reader.pages:
+                resume_text += p.extract_text() or ""
 
-    submitted = st.button("🚀 Submit Application")
+        submitted = st.form_submit_button("🚀 Submit Application")
 
-    if submitted:
+        if submitted:
 
-        if is_duplicate(email):
-            st.warning("Duplicate candidate detected")
-        else:
-            insert_application(
-                name,
-                email,
-                skills,
-                experience,
-                education,
-                project,
-                resume_text
-            )
+            if not name or not email:
+                st.error("Name and Email are required!")
+            else:
+                if is_duplicate(email):
+                    st.warning(" Duplicate candidate detected")
+                else:
+                    insert_application(
+                        name,
+                        email,
+                        skills,
+                        experience,
+                        education,
+                        project,
+                        resume_text
+                    )
 
-            st.success("Application submitted successfully!")
-
-            # 🔥 IMPORTANT FIX (FORCE REFRESH)
-            st.rerun()
+                    st.success("Application submitted successfully!")
+                    st.rerun()
 
 
 # ================= ADMIN PAGE =================
@@ -104,7 +106,7 @@ elif page == "Admin":
             st.session_state.admin_logged_in = False
             st.rerun()
 
-        #  JOB 
+        # ---------------- JOB ----------------
         job_desc = get_job()
 
         jd = st.text_area("Job Description", value=job_desc if job_desc else "")
@@ -116,8 +118,8 @@ elif page == "Admin":
 
         st.markdown("---")
 
-        # 🔥 MANUAL REFRESH BUTTON (OPTIONAL BUT USEFUL)
-        if st.button(" Refresh Candidates"):
+        # 🔄 Refresh button
+        if st.button("🔄 Refresh Candidates"):
             st.rerun()
 
         # ================= DATA =================
@@ -126,7 +128,7 @@ elif page == "Admin":
         if data and job_desc:
 
             # ================= RAW VIEW =================
-            st.subheader("All Candidates ")
+            st.subheader("📋 All Candidates (Raw Data)")
 
             for row in data:
 
@@ -138,7 +140,7 @@ elif page == "Admin":
                 st.write(" Education:", row[5])
                 st.write(" Project:", row[6])
 
-            # ================= AI RANKED VIEW =================
+            # ================= RANKED VIEW =================
             st.markdown("---")
             st.subheader(" Ranked Candidates (AI Evaluation)")
 
@@ -167,7 +169,6 @@ elif page == "Admin":
                     "Missing Skills": ", ".join(result.get("missing_skills", []))
                 })
 
-            # sort by score
             results = sorted(results, key=lambda x: x["Score"], reverse=True)
 
             for r in results:
