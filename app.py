@@ -33,6 +33,9 @@ if page == "User":
 
     st.header("Candidate Application Form")
 
+    # File upload (outside form logic safety)
+    uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
+
     with st.form("application_form", clear_on_submit=True):
 
         name = st.text_input("Name")
@@ -42,39 +45,48 @@ if page == "User":
         education = st.text_input("Education")
         project = st.text_area("Project Description")
 
-        uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
+        submitted = st.form_submit_button("Submit Application")
+
+    # ---------------- PROCESS AFTER SUBMIT ----------------
+    if submitted:
 
         resume_text = ""
 
+        # Safe PDF extraction
         if uploaded_file is not None:
-            reader = PdfReader(uploaded_file)
-            for page in reader.pages:
-                text = page.extract_text()
-                if text:
-                    resume_text += text
+            try:
+                from pypdf import PdfReader
 
-        submitted = st.form_submit_button("Submit Application")
+                reader = PdfReader(uploaded_file)
 
-        if submitted:
+                for page in reader.pages:
+                    text = page.extract_text()
+                    if text:
+                        resume_text += text
 
-            if not name or not email:
-                st.error("Name and Email are required")
-            elif is_duplicate(email):
-                st.warning("Duplicate candidate detected")
-            else:
-                insert_application(
-                    name,
-                    email,
-                    skills,
-                    experience,
-                    education,
-                    project,
-                    resume_text
-                )
+            except Exception:
+                resume_text = ""
 
-                st.success("Application submitted successfully")
-                st.rerun()
+        # Validation
+        if not name.strip() or not email.strip():
+            st.error("Name and Email are required")
 
+        elif is_duplicate(email):
+            st.warning("Duplicate candidate detected")
+
+        else:
+            insert_application(
+                name,
+                email,
+                skills,
+                experience,
+                education,
+                project,
+                resume_text
+            )
+
+            st.success("Application submitted successfully")
+            st.rerun()
 
 # ---------------- ADMIN PAGE ----------------
 elif page == "Admin":
