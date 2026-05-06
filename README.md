@@ -1,5 +1,4 @@
 AI-Powered Application Screening System
-
 An intelligent web-based recruitment automation system that evaluates job applicants using NLP-driven job matching and rule-based AI scoring.
 The system helps recruiters automatically shortlist candidates based on their relevance to a job description.
 
