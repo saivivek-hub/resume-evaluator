@@ -1,4 +1,5 @@
 AI-Powered Application Screening System
+
 An intelligent web-based recruitment automation system that evaluates job applicants using NLP-driven job matching and rule-based AI scoring.
 The system helps recruiters automatically shortlist candidates based on their relevance to a job description.
 
@@ -81,15 +82,18 @@ Real-time candidate ranking
 Clean admin-user separation
 Fully functional recruitment automation workflow
 ⚠️ Limitations
-  Uses rule-based NLP instead of deep learning models
-  No authentication layer implemented (scope for extension)
-  Does not use semantic embeddings for similarity
+Rule-based NLP (not deep learning based)
+Basic token matching instead of semantic embeddings
+No authentication security layer (can be added)
 🔮 Future Improvements
-  Integration with BERT / Sentence Transformers for semantic matching
-  Resume parsing from PDF files
-  Email notification system for recruiters and candidates
-  Role-based authentication (Admin/User security layer)
-  Cloud deployment using Streamlit Cloud or AWS
+Integration with BERT / Sentence Transformers
+Resume PDF parsing
+Email notifications
+Role-based authentication system
+Cloud deployment (Streamlit Cloud / AWS)
+👨‍💻 Author
+
+Built as an AI automation project for intelligent recruitment screening workflows.
 
 📄 License
 
