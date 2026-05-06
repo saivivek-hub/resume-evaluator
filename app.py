@@ -9,19 +9,19 @@ init_db()
 
 st.set_page_config(page_title="AI Screening System", layout="wide")
 
-st.title("🤖 AI-Powered Application Screening System")
+st.title(" AI-Powered Application Screening System")
 
-#  SESSION STATE 
+# ---------------- SESSION STATE ----------------
 if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
 
-#  NAVIGATION 
+# ---------------- NAVIGATION ----------------
 page = st.sidebar.selectbox("Navigation", ["User", "Admin"])
 
 #  USER PAGE 
 if page == "User":
 
-    st.header("📄 Candidate Application Form")
+    st.header("Candidate Application Form")
 
     name = st.text_input("Name")
     email = st.text_input("Email")
@@ -30,31 +30,29 @@ if page == "User":
     education = st.text_input("Education")
     project = st.text_area("Project Description")
 
-    submitted = st.button("🚀 Submit Application")
+    submitted = st.button("Submit Application")
 
     if submitted:
 
-        candidate = {
-            "name": name,
-            "email": email,
-            "skills": skills,
-            "experience": experience,
-            "education": education,
-            "project": project
-        }
-
-        # ONLY SAVE DATA (NO AI IN USER SIDE)
-        insert_application(candidate)
+        #  FIXED INSERT 
+        insert_application(
+            name,
+            email,
+            skills,
+            experience,
+            education,
+            project
+        )
 
         st.success("✅ Application submitted successfully!")
         st.info("Your application will be evaluated by admin.")
 
-#  ADMIN PAGE 
+# ========================= ADMIN PAGE =========================
 elif page == "Admin":
 
     st.header("🧑‍💼 Admin Panel")
 
-    #  LOGIN 
+    # ---------------- LOGIN ----------------
     if not st.session_state.admin_logged_in:
 
         username = st.text_input("Username")
@@ -71,26 +69,26 @@ elif page == "Admin":
 
     else:
 
-        st.success("Welcome Admin 👋")
+        st.success("Welcome Admin ")
 
         if st.button("Logout"):
             st.session_state.admin_logged_in = False
             st.rerun()
 
-        #  JOB DESCRIPTION 
+        # ---------------- JOB DESCRIPTION ----------------
         job_desc = get_job()
 
-        st.subheader("📌 Job Description")
+        st.subheader(" Job Description")
 
         jd = st.text_area("Set / Edit Job Description", value=job_desc if job_desc else "")
 
-        if st.button("💾 Save Job Description"):
+        if st.button(" Save Job Description"):
             save_job(jd)
             st.success("Job description saved!")
 
         st.markdown("---")
 
-        # ---------------- EVALUATION ----------------
+        # ---------------- APPLICATION EVALUATION ----------------
         data = get_all_applications()
 
         if data and job_desc:
@@ -130,11 +128,11 @@ elif page == "Admin":
             st.subheader("📊 Score Chart")
             st.bar_chart(df["Score"])
 
-            st.subheader("📌 Recommendation Stats")
+            st.subheader(" Recommendation Stats")
             st.bar_chart(df["Recommendation"].value_counts())
 
         elif not job_desc:
-            st.warning("⚠️ Please set job description first")
+            st.warning("Please set job description first")
 
         else:
             st.info("No applications submitted yet.")
