@@ -33,10 +33,9 @@ if page == "User":
 
     st.header("Candidate Application Form")
 
-    # File upload (outside form logic safety)
-    uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
-
     with st.form("application_form", clear_on_submit=True):
+
+        uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
 
         name = st.text_input("Name")
         email = st.text_input("Email")
@@ -50,22 +49,20 @@ if page == "User":
     # ---------------- PROCESS AFTER SUBMIT ----------------
     if submitted:
 
+        st.write("Submit clicked")  # Debug
+
         resume_text = ""
 
-        # Safe PDF extraction
+        # PDF extraction
         if uploaded_file is not None:
             try:
-                from pypdf import PdfReader
-
                 reader = PdfReader(uploaded_file)
-
                 for page in reader.pages:
                     text = page.extract_text()
                     if text:
                         resume_text += text
-
-            except Exception:
-                resume_text = ""
+            except Exception as e:
+                st.error(f"PDF Error: {e}")
 
         # Validation
         if not name.strip() or not email.strip():
@@ -75,7 +72,7 @@ if page == "User":
             st.warning("Duplicate candidate detected")
 
         else:
-            insert_application(
+            result = insert_application(
                 name,
                 email,
                 skills,
@@ -85,8 +82,11 @@ if page == "User":
                 resume_text
             )
 
-            st.success("Application submitted successfully")
-            st.rerun()
+            if result is True:
+                st.success("Application submitted successfully")
+            else:
+                st.error(f"Insertion failed : {result}")
+
 
 # ---------------- ADMIN PAGE ----------------
 elif page == "Admin":
@@ -127,7 +127,7 @@ elif page == "Admin":
 
         data = get_all_applications()
 
-        if data and job_desc:
+        if data and jd:
 
             st.subheader("All Candidates")
 
@@ -156,7 +156,7 @@ elif page == "Admin":
                     "resume": row[7]
                 }
 
-                result = evaluate_with_llm(candidate, job_desc)
+                result = evaluate_with_llm(candidate, jd)
 
                 results.append({
                     "Name": candidate["name"],
