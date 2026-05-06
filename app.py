@@ -12,7 +12,6 @@ st.set_page_config(page_title="AI ATS System", layout="wide")
 
 st.title(" AI-Powered ATS (Recruiter Screening System)")
 
-#  SESSION 
 if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
 
@@ -34,7 +33,7 @@ def is_duplicate(email):
 #  USER PAGE 
 if page == "User":
 
-    st.header("Candidate Application Form")
+    st.header("📄 Candidate Application")
 
     name = st.text_input("Name")
     email = st.text_input("Email")
@@ -44,7 +43,7 @@ if page == "User":
     project = st.text_area("Project Description")
 
     #  CV UPLOAD 
-    st.subheader(" Upload Resume (PDF)")
+    st.subheader("📎 Upload Resume (PDF)")
     uploaded_file = st.file_uploader("Upload CV", type=["pdf"])
 
     resume_text = ""
@@ -56,12 +55,12 @@ if page == "User":
 
         st.success("Resume uploaded successfully!")
 
-    submitted = st.button(" Submit Application")
+    submitted = st.button("🚀 Submit Application")
 
     if submitted:
 
         if is_duplicate(email):
-            st.warning("email already exists")
+            st.warning("⚠ Duplicate candidate detected (email already exists)")
         else:
             insert_application(
                 name,
@@ -101,7 +100,7 @@ elif page == "Admin":
             st.session_state.admin_logged_in = False
             st.rerun()
 
-        #  JOB DESCRIPTION 
+        #  JOB 
         job_desc = get_job()
 
         jd = st.text_area("Job Description", value=job_desc if job_desc else "")
@@ -112,7 +111,7 @@ elif page == "Admin":
 
         st.markdown("---")
 
-        #  APPLICATIONS 
+        #  DATA 
         data = get_all_applications()
 
         if data and job_desc:
@@ -138,19 +137,20 @@ elif page == "Admin":
                 results.append({
                     "Name": candidate["name"],
                     "Email": candidate["email"],
-                    "Score": result["score"],
-                    "Recommendation": result["recommendation"],
-                    "Explanation": result["explanation"],
-                    "Missing Skills": ", ".join(result["missing_skills"])
+                    "Score": result.get("score", 0),
+                    "Recommendation": result.get("recommendation", "N/A"),
+                    "Explanation": result.get("explanation", "N/A"),
+
+                    "Missing Skills": ", ".join(result.get("missing_skills", []))
                 })
 
-            # sort by score
+            # sort
             results = sorted(results, key=lambda x: x["Score"], reverse=True)
 
             for r in results:
 
                 st.markdown("---")
-                st.subheader(f"👤 {r['Name']}")
+                st.subheader(f" {r['Name']}")
 
                 st.write(" Email:", r["Email"])
                 st.write(" Score:", r["Score"])
