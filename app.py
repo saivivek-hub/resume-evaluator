@@ -119,7 +119,7 @@ elif page == "Admin":
         if data and job_desc:
 
             #  RAW DATA VIEW
-            st.subheader(" All Candidates (Raw Data)")
+            st.subheader(" All Candidates ")
 
             for row in data:
 
