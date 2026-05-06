@@ -3,12 +3,10 @@ import sqlite3
 DB_NAME = "applications.db"
 
 
-# INITIALIZE DATABASE
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    # Applications table
     c.execute("""
         CREATE TABLE IF NOT EXISTS applications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -17,17 +15,7 @@ def init_db():
             skills TEXT,
             experience INTEGER,
             education TEXT,
-            project TEXT,
-            score INTEGER,
-            recommendation TEXT
-        )
-    """)
-
-    # Job description table
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS job (
-            id INTEGER PRIMARY KEY,
-            description TEXT
+            project TEXT
         )
     """)
 
@@ -35,32 +23,19 @@ def init_db():
     conn.close()
 
 
-# SAVE APPLICATION
-def insert_application(app, score, recommendation):
+def insert_application(name, email, skills, experience, education, project):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
     c.execute("""
-        INSERT INTO applications (
-            name, email, skills, experience,
-            education, project, score, recommendation
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        app["name"],
-        app["email"],
-        app["skills"],
-        app["experience"],
-        app["education"],
-        app["project"],
-        score,
-        recommendation
-    ))
+        INSERT INTO applications (name, email, skills, experience, education, project)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (name, email, skills, experience, education, project))
 
     conn.commit()
     conn.close()
 
 
-# GET ALL APPLICATIONS
 def get_all_applications():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -71,36 +46,26 @@ def get_all_applications():
     conn.close()
     return data
 
-# SAVE JOB DESCRIPTION
-def save_job(description):
+
+def save_job(job_desc):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    # Ensure table exists
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS job (
-            id INTEGER PRIMARY KEY,
-            description TEXT
-        )
-    """)
-
-    # Replace old job
+    c.execute("CREATE TABLE IF NOT EXISTS job (id INTEGER PRIMARY KEY, description TEXT)")
     c.execute("DELETE FROM job")
-    c.execute("INSERT INTO job (id, description) VALUES (1, ?)", (description,))
+    c.execute("INSERT INTO job (id, description) VALUES (1, ?)", (job_desc,))
 
     conn.commit()
     conn.close()
 
 
-
-# GET JOB DESCRIPTION
 def get_job():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    c.execute("SELECT description FROM job WHERE id = 1")
+    c.execute("SELECT description FROM job WHERE id=1")
     row = c.fetchone()
 
     conn.close()
 
-    return row[0] if row else None
+    return row[0] if row else ""
