@@ -3,12 +3,11 @@ import sqlite3
 DB_NAME = "applications.db"
 
 
-#  INIT DATABASE 
+#  INIT DB 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    # Applications table (NO UNIQUE constraint → safer for Streamlit)
     c.execute("""
         CREATE TABLE IF NOT EXISTS applications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,7 +21,6 @@ def init_db():
         )
     """)
 
-    # Job table (single active job)
     c.execute("""
         CREATE TABLE IF NOT EXISTS job (
             id INTEGER PRIMARY KEY,
@@ -41,10 +39,24 @@ def insert_application(name, email, skills, experience, education, project, resu
     c = conn.cursor()
 
     try:
-        # prevent empty inserts
+        # ---- SAFE DEFAULTS ----
+        name = str(name or "").strip()
+        email = str(email or "").strip()
+        skills = str(skills or "").strip()
+        education = str(education or "").strip()
+        project = str(project or "").strip()
+        resume = str(resume or "").strip()
+
+        try:
+            experience = int(experience)
+        except:
+            experience = 0
+
+        # ---- BASIC VALIDATION ----
         if not name or not email:
             return
 
+        # ---- INSERT ----
         c.execute("""
             INSERT INTO applications 
             (name, email, skills, experience, education, project, resume)
@@ -54,7 +66,7 @@ def insert_application(name, email, skills, experience, education, project, resu
         conn.commit()
 
     except Exception as e:
-        print("Database Insert Error:", e)
+        print("DB Insert Error:", e)
 
     finally:
         conn.close()
@@ -73,7 +85,7 @@ def get_all_applications():
     return data
 
 
-#  SAVE JOB DESCRIPTION 
+#  SAVE JOB 
 def save_job(job_description):
 
     conn = sqlite3.connect(DB_NAME)
@@ -90,7 +102,7 @@ def save_job(job_description):
     conn.close()
 
 
-#  GET JOB DESCRIPTION 
+#  GET JOB 
 def get_job():
 
     conn = sqlite3.connect(DB_NAME)
