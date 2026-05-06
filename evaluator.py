@@ -1,84 +1,96 @@
-def simple_tokens(text):
+def tokenize(text):
     return set(text.lower().split())
 
 
 def evaluate_with_llm(candidate, job_desc):
 
-    skills = simple_tokens(candidate.get("skills", ""))
-    project = simple_tokens(candidate.get("project", ""))
-    job_tokens = simple_tokens(job_desc)
+    #  INPUTS 
+    skills = tokenize(candidate.get("skills", ""))
+    project = tokenize(candidate.get("project", ""))
+    job_tokens = tokenize(job_desc)
+
+    experience = candidate.get("experience", 0)
 
     factors = []
 
-    #  FLEXIBLE MATCH SCORE 
+    # CORE MATCH 
     if len(job_tokens) == 0:
         job_tokens = {"general"}
 
-    overlap = len(job_tokens & (skills | project))
-    overlap_ratio = overlap / len(job_tokens)
+    skill_project_union = skills | project
 
-    # smoother curve (IMPORTANT FIX)
-    score = overlap_ratio * 70
+    match_count = len(job_tokens & skill_project_union)
+    match_ratio = match_count / len(job_tokens)
 
-    factors.append(f"{overlap} keyword matches")
+    # Balanced scoring curve (FIXED FAIRNESS)
+    score = match_ratio * 65
 
-    #  SOFT SKILL BOOST 
-    skill_match = len(skills & job_tokens)
-    score += skill_match * 3
-    if skill_match:
-        factors.append("Skill relevance detected")
+    factors.append(f"{match_count} relevant keyword matches")
 
-    #  EXPERIENCE 
-    exp = candidate.get("experience", 0)
+    #  SKILL STRENGTH BOOST 
+    strong_skills = {
+        "python", "machine", "learning", "nlp",
+        "tensorflow", "pytorch", "sql", "aws", "data"
+    }
 
-    exp_bonus = min(exp * 3, 15)  # capped so it doesn't dominate
-    score += exp_bonus
+    strong_match = len(job_tokens & strong_skills & skills)
+    score += strong_match * 4
 
-    if exp > 0:
-        factors.append(f"{exp} years experience considered")
+    if strong_match > 0:
+        factors.append("Strong technical skill alignment")
 
-    #  PROJECT QUALITY 
-    project_score = len(project & job_tokens)
-    score += project_score * 2
+    # EXPERIENCE (FAIR SCALING) 
+    if experience <= 0:
+        score += 5
+        factors.append("Fresher level considered (no penalty)")
+    elif experience <= 2:
+        score += 10
+        factors.append("Junior experience")
+    elif experience <= 5:
+        score += 15
+        factors.append("Mid-level experience")
+    else:
+        score += 20
+        factors.append("Senior experience")
 
-    if project_score:
-        factors.append("Relevant project keywords found")
+    # PROJECT QUALITY 
+    project_overlap = len(project & job_tokens)
+    score += project_overlap * 3
+
+    if project_overlap > 0:
+        factors.append("Relevant project experience")
+
+    #  BONUS FOR STRONG CANDIDATES 
+    if match_ratio > 0.6 and experience >= 2:
+        score += 10
+        factors.append("High overall profile strength")
 
     #  FINAL NORMALIZATION 
     score = max(0, min(100, round(score)))
 
-    #  EXPLANATION
-    explanation_parts = []
-
-    if overlap_ratio > 0.5:
-        explanation_parts.append("Strong job match based on skills alignment")
-    elif overlap_ratio > 0.2:
-        explanation_parts.append("Moderate job relevance")
+    #   DECISION 
+    if score >= 80:
+        recommendation = "Strong Hire"
+    elif score >= 65:
+        recommendation = "Shortlisted"
+    elif score >= 45:
+        recommendation = "Needs Review"
     else:
-        explanation_parts.append("Low keyword alignment with job description")
+        recommendation = "Not Shortlisted"
 
-    if exp >= 5:
-        explanation_parts.append("Strong experience level")
-    elif exp >= 2:
-        explanation_parts.append("Moderate experience level")
+    #   EXPLANATION 
+    if score >= 80:
+        explanation = "Excellent match with job requirements and strong technical alignment."
+    elif score >= 65:
+        explanation = "Good alignment with job requirements and relevant skill set."
+    elif score >= 45:
+        explanation = "Partial match with job requirements, some key skills missing."
     else:
-        explanation_parts.append("Entry level experience considered")
-
-    explanation = ", ".join(explanation_parts)
-
-    #  DECISION 
-    if score >= 75:
-        rec = "Strong Hire"
-    elif score >= 55:
-        rec = "Shortlisted"
-    elif score >= 40:
-        rec = "Needs Review"
-    else:
-        rec = "Not Shortlisted"
+        explanation = "Low alignment with job requirements and limited relevant skills."
 
     return {
         "score": score,
-        "recommendation": rec,
+        "recommendation": recommendation,
         "explanation": explanation,
         "top_factors": factors[:4]
     }
