@@ -34,51 +34,61 @@ def is_duplicate(email):
 # ================= USER PAGE =================
 if page == "User":
 
-    st.header(" Candidate Application Form")
+   st.header(" Candidate Application Form")
 
-    # ✅ FIXED: USE FORM (VERY IMPORTANT)
-    with st.form("application_form"):
+with st.form("application_form", clear_on_submit=True):
 
-        name = st.text_input("Name")
-        email = st.text_input("Email")
-        skills = st.text_area("Skills")
-        experience = st.slider("Experience (years)", 0, 10)
-        education = st.text_input("Education")
-        project = st.text_area("Project Description")
+    name = st.text_input("Name")
+    email = st.text_input("Email")
 
-        st.subheader("📎 Upload Resume (PDF)")
-        uploaded_file = st.file_uploader("Upload CV", type=["pdf"])
+    skills = st.text_area("Skills (Paste full content)", height=150)
 
-        resume_text = ""
+    experience = st.slider("Experience (years)", 0, 10)
 
-        if uploaded_file:
+    education = st.text_input("Education")
+    project = st.text_area("Project Description")
+
+    st.subheader("📎 Resume Upload (PDF optional)")
+    uploaded_file = st.file_uploader("Upload CV", type=["pdf"])
+
+    resume_text = ""
+
+    if uploaded_file is not None:
+        try:
+            from pypdf import PdfReader
+
             reader = PdfReader(uploaded_file)
-            for p in reader.pages:
-                resume_text += p.extract_text() or ""
 
-        submitted = st.form_submit_button("🚀 Submit Application")
+            for page in reader.pages:
+                text = page.extract_text()
+                if text:
+                    resume_text += text
 
-        if submitted:
+        except Exception as e:
+            st.error("PDF reading error: " + str(e))
 
-            if not name or not email:
-                st.error("Name and Email are required!")
-            else:
-                if is_duplicate(email):
-                    st.warning(" Duplicate candidate detected")
-                else:
-                    insert_application(
-                        name,
-                        email,
-                        skills,
-                        experience,
-                        education,
-                        project,
-                        resume_text
-                    )
+    submitted = st.form_submit_button("🚀 Submit Application")
 
-                    st.success("Application submitted successfully!")
-                    st.rerun()
+    if submitted:
 
+        # ---------------- VALIDATION ----------------
+        if not name.strip() or not email.strip():
+            st.error("Name and Email are required!")
+        elif len(skills.strip()) < 10:
+            st.error("Please enter more skill details (too short input)")
+        else:
+            insert_application(
+                name,
+                email,
+                skills,
+                experience,
+                education,
+                project,
+                resume_text
+            )
+
+            st.success("Application submitted successfully!")
+            st.rerun()
 
 # ================= ADMIN PAGE =================
 elif page == "Admin":
