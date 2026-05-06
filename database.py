@@ -3,7 +3,6 @@ import sqlite3
 DB_NAME = "applications.db"
 
 
-#  INIT DB 
 def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
@@ -32,14 +31,13 @@ def init_db():
     conn.close()
 
 
-#  SAFE INSERT 
 def insert_application(name, email, skills, experience, education, project, resume):
 
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
     try:
-        # ---- SAFE DEFAULTS ----
+        # Clean inputs
         name = str(name or "").strip()
         email = str(email or "").strip()
         skills = str(skills or "").strip()
@@ -52,11 +50,11 @@ def insert_application(name, email, skills, experience, education, project, resu
         except:
             experience = 0
 
-        # ---- BASIC VALIDATION ----
+        # Validation
         if not name or not email:
-            return
+            raise ValueError("Name and Email are required")
 
-        # ---- INSERT ----
+        # Insert
         c.execute("""
             INSERT INTO applications 
             (name, email, skills, experience, education, project, resume)
@@ -65,52 +63,10 @@ def insert_application(name, email, skills, experience, education, project, resu
 
         conn.commit()
 
+        return True  
+
     except Exception as e:
-        print("DB Insert Error:", e)
+        return str(e)  
 
     finally:
         conn.close()
-
-
-#  GET ALL APPLICATIONS 
-def get_all_applications():
-
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-
-    c.execute("SELECT * FROM applications")
-    data = c.fetchall()
-
-    conn.close()
-    return data
-
-
-#  SAVE JOB 
-def save_job(job_description):
-
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-
-    c.execute("DELETE FROM job")
-
-    c.execute("""
-        INSERT INTO job (id, description)
-        VALUES (1, ?)
-    """, (job_description,))
-
-    conn.commit()
-    conn.close()
-
-
-#  GET JOB 
-def get_job():
-
-    conn = sqlite3.connect(DB_NAME)
-    c = conn.cursor()
-
-    c.execute("SELECT description FROM job WHERE id = 1")
-    row = c.fetchone()
-
-    conn.close()
-
-    return row[0] if row else ""
