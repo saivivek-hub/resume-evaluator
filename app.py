@@ -5,7 +5,7 @@ from pypdf import PdfReader
 from evaluator import evaluate_with_llm
 from database import init_db, insert_application, get_all_applications, save_job, get_job
 
-#  INIT 
+# ---------------- INIT ----------------
 init_db()
 
 st.set_page_config(page_title="AI ATS System", layout="wide")
@@ -17,7 +17,8 @@ if "admin_logged_in" not in st.session_state:
 
 page = st.sidebar.selectbox("Navigation", ["User", "Admin"])
 
-#  DUPLICATE CHECK 
+
+# ================= DUPLICATE CHECK =================
 def is_duplicate(email):
     conn = sqlite3.connect("applications.db")
     c = conn.cursor()
@@ -30,10 +31,10 @@ def is_duplicate(email):
     return exists is not None
 
 
-#  USER PAGE 
+# ================= USER PAGE =================
 if page == "User":
 
-    st.header("📄 Candidate Application")
+    st.header("📄 Candidate Application Form")
 
     name = st.text_input("Name")
     email = st.text_input("Email")
@@ -42,7 +43,6 @@ if page == "User":
     education = st.text_input("Education")
     project = st.text_area("Project Description")
 
-    #  CV UPLOAD 
     st.subheader("📎 Upload Resume (PDF)")
     uploaded_file = st.file_uploader("Upload CV", type=["pdf"])
 
@@ -50,17 +50,17 @@ if page == "User":
 
     if uploaded_file:
         reader = PdfReader(uploaded_file)
-        for page in reader.pages:
-            resume_text += page.extract_text() or ""
+        for p in reader.pages:
+            resume_text += p.extract_text() or ""
 
         st.success("Resume uploaded successfully!")
 
-    submitted = st.button("🚀 Submit Application")
+    submitted = st.button(" Submit Application")
 
     if submitted:
 
         if is_duplicate(email):
-            st.warning("⚠ Duplicate candidate detected (email already exists)")
+            st.warning("⚠ Duplicate candidate detected")
         else:
             insert_application(
                 name,
@@ -74,12 +74,13 @@ if page == "User":
 
             st.success("Application submitted successfully!")
 
-#  ADMIN PAGE 
+
+# ================= ADMIN PAGE =================
 elif page == "Admin":
 
     st.header("🧑‍💼 Admin Panel")
 
-    #  LOGIN 
+    # ---------------- LOGIN ----------------
     if not st.session_state.admin_logged_in:
 
         username = st.text_input("Username")
@@ -100,7 +101,7 @@ elif page == "Admin":
             st.session_state.admin_logged_in = False
             st.rerun()
 
-        #  JOB 
+        # ---------------- JOB ----------------
         job_desc = get_job()
 
         jd = st.text_area("Job Description", value=job_desc if job_desc else "")
@@ -108,15 +109,31 @@ elif page == "Admin":
         if st.button("Save Job"):
             save_job(jd)
             st.success("Job saved successfully")
+            st.rerun()
 
         st.markdown("---")
 
-        #  DATA 
+        # ================= DATA =================
         data = get_all_applications()
 
         if data and job_desc:
 
-            st.subheader(" Ranked Candidates")
+            #  RAW DATA VIEW
+            st.subheader(" All Candidates (Raw Data)")
+
+            for row in data:
+
+                st.markdown("---")
+                st.write(" Name:", row[1])
+                st.write(" Email:", row[2])
+                st.write(" Skills:", row[3])
+                st.write(" Experience:", row[4])
+                st.write(" Education:", row[5])
+                st.write(" Project:", row[6])
+
+            #  RANKED VIEW
+            st.markdown("---")
+            st.subheader("Ranked Candidates (AI Evaluation)")
 
             results = []
 
@@ -140,11 +157,10 @@ elif page == "Admin":
                     "Score": result.get("score", 0),
                     "Recommendation": result.get("recommendation", "N/A"),
                     "Explanation": result.get("explanation", "N/A"),
-
                     "Missing Skills": ", ".join(result.get("missing_skills", []))
                 })
 
-            # sort
+            # sort by score
             results = sorted(results, key=lambda x: x["Score"], reverse=True)
 
             for r in results:
