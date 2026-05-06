@@ -10,7 +10,7 @@ init_db()
 
 st.set_page_config(page_title="AI ATS System", layout="wide")
 
-st.title(" AI-Powered ATS (Recruiter Screening System)")
+st.title("🤖 AI-Powered ATS (Recruiter Screening System)")
 
 if "admin_logged_in" not in st.session_state:
     st.session_state.admin_logged_in = False
@@ -55,12 +55,12 @@ if page == "User":
 
         st.success("Resume uploaded successfully!")
 
-    submitted = st.button(" Submit Application")
+    submitted = st.button("🚀 Submit Application")
 
     if submitted:
 
         if is_duplicate(email):
-            st.warning("⚠ Duplicate candidate detected")
+            st.warning("Duplicate candidate detected")
         else:
             insert_application(
                 name,
@@ -73,6 +73,9 @@ if page == "User":
             )
 
             st.success("Application submitted successfully!")
+
+            # 🔥 IMPORTANT FIX (FORCE REFRESH)
+            st.rerun()
 
 
 # ================= ADMIN PAGE =================
@@ -101,7 +104,7 @@ elif page == "Admin":
             st.session_state.admin_logged_in = False
             st.rerun()
 
-        # ---------------- JOB ----------------
+        #  JOB 
         job_desc = get_job()
 
         jd = st.text_area("Job Description", value=job_desc if job_desc else "")
@@ -113,13 +116,17 @@ elif page == "Admin":
 
         st.markdown("---")
 
+        # 🔥 MANUAL REFRESH BUTTON (OPTIONAL BUT USEFUL)
+        if st.button(" Refresh Candidates"):
+            st.rerun()
+
         # ================= DATA =================
         data = get_all_applications()
 
         if data and job_desc:
 
-            #  RAW DATA VIEW
-            st.subheader(" All Candidates ")
+            # ================= RAW VIEW =================
+            st.subheader("All Candidates ")
 
             for row in data:
 
@@ -131,9 +138,9 @@ elif page == "Admin":
                 st.write(" Education:", row[5])
                 st.write(" Project:", row[6])
 
-            #  RANKED VIEW
+            # ================= AI RANKED VIEW =================
             st.markdown("---")
-            st.subheader("Ranked Candidates (AI Evaluation)")
+            st.subheader(" Ranked Candidates (AI Evaluation)")
 
             results = []
 
