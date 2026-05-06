@@ -5,7 +5,7 @@ An intelligent web-based recruitment automation system that evaluates job applic
 The system helps recruiters automatically shortlist candidates based on their relevance to a job description.
 
 
-📌 Project Overview
+ Project Overview
 
 
 This project automates the initial screening process of job applications by:
@@ -17,15 +17,15 @@ Matching skills and experience using NLP-based token analysis
 Generating a suitability score (0–100) with explanations
 Ranking candidates for faster decision-making
 
-✨ Features
+ Features
 
-👤 User Module
+ User Module
 
 Submit application details (name, email, skills, experience, education, project)
 View job description
 Receive automated evaluation results
 
-🔐 Admin Module
+ Admin Module
 
 Create and update job descriptions
 View all submitted applications
@@ -33,7 +33,7 @@ Ranked candidate dashboard
 Analytics (score distribution, recommendations)
 Download applications as CSV
 
-🧠 AI / NLP Evaluation Logic
+ AI / NLP Evaluation Logic
 
 
 The system uses a hybrid approach:
@@ -55,7 +55,7 @@ Recommendation: Shortlisted / Needs Review / Not Shortlisted
 Explanation: AI reasoning summary
 Top Factors: Key matching indicators
 
-🏗️ Tech Stack
+ Tech Stack
 
 Python
 
@@ -67,7 +67,7 @@ Pandas (Data handling)
 
 Custom NLP logic (token-based processing)
 
-📁 Project Structure
+ Project Structure
 
 Application Screening/
 
@@ -84,22 +84,22 @@ Application Screening/
 
 └── README.md             # Project documentation
 
-🚀 How to Run the Project
+ How to Run the Project
 
-1️⃣ Clone the repository
+1. Clone the repository
 
 git clone https://github.com/your-username/application-screening.git
 cd application-screening
 
-2️⃣ Install dependencies
+2. Install dependencies
 
 python -m pip install streamlit pandas
 
-3️⃣ Run the application
+3. Run the application
 
 streamlit run app.py
 
-🔐 Admin Access
+ Admin Access
 
 Go to Admin panel
 
@@ -121,7 +121,7 @@ Top Factors:
 - nlp match
 - moderate experience
 
-🎯 Key Highlights
+ Key Highlights
 
 Job-description-driven evaluation system
 
@@ -133,7 +133,7 @@ Clean admin-user separation
 
 Fully functional recruitment automation workflow
 
-⚠️ Limitations
+ Limitations
   
   Uses rule-based NLP instead of deep learning models
   
@@ -141,7 +141,7 @@ Fully functional recruitment automation workflow
   
   Does not use semantic embeddings for similarity
 
-🔮Future Improvements
+Future Improvements
 
   Integration with BERT / Sentence Transformers for semantic matching
   
@@ -153,6 +153,5 @@ Fully functional recruitment automation workflow
   
   Cloud deployment using Streamlit Cloud or AWS
 
-📄 License
 
 This project is open-source and free to use for learning and academic purposes.
