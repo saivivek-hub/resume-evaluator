@@ -87,7 +87,7 @@ elif page == "Admin":
         password = st.text_input("Password", type="password")
 
         if st.button("Login"):
-            if username == "admin" and password == "12234":
+            if username == "admin" and password == "1234":
                 st.session_state.admin_logged_in = True
                 st.rerun()
             else:
