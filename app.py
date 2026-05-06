@@ -1,140 +1,112 @@
 import streamlit as st
 import pandas as pd
 
-from database import init_db, save_job, get_job, insert_application, get_all_applications
 from evaluator import evaluate_with_llm
+from database import init_db, insert_application, get_all_applications, save_job, get_job
 
-# 🔧 Init DB
+#  INIT 
 init_db()
 
-# 🎨 Page config
 st.set_page_config(page_title="AI Screening System", layout="wide")
 
-# 🏷️ Title
 st.title("🤖 AI-Powered Application Screening System")
-st.markdown("---")
 
-# 📌 Sidebar navigation
 page = st.sidebar.selectbox("Navigation", ["User", "Admin"])
 
 #  USER PAGE 
 if page == "User":
 
-    st.header("📄 Apply for Job")
+    st.header("📄 Candidate Application Form")
 
-    job_desc = get_job()
+    name = st.text_input("Name")
+    email = st.text_input("Email")
+    skills = st.text_area("Skills")
+    experience = st.slider("Experience (years)", 0, 10)
+    education = st.text_input("Education")
+    project = st.text_area("Project Description")
 
-    if not job_desc:
-        st.warning("⚠️ No job description available. Please check back later.")
-    else:
-        st.subheader("📌 Job Description")
-        st.info(job_desc)
+    submitted = st.button("🚀 Submit Application")
 
-        # 🧾 Form UI
-        with st.form("application_form"):
-            col1, col2 = st.columns(2)
+    if submitted:
 
-            with col1:
-                name = st.text_input("Name")
-                email = st.text_input("Email")
-                experience = st.slider("Experience (years)", 0, 10)
+        candidate = {
+            "name": name,
+            "email": email,
+            "skills": skills,
+            "experience": experience,
+            "education": education,
+            "project": project
+        }
 
-            with col2:
-                education = st.text_input("Education")
-                skills = st.text_area("Skills")
-                project = st.text_area("Project Description")
+        # ONLY SAVE DATA (NO AI HERE)
+        insert_application(candidate)
 
-            submitted = st.form_submit_button("🚀 Submit Application")
+        st.success("✅ Application submitted successfully!")
+        st.info("Your application will be evaluated by admin.")
 
-        if submitted:
-
-            candidate = {
-                "skills": skills,
-                "experience": experience,
-                "education": education,
-                "project": project
-            }
-
-            result = evaluate_with_llm(candidate, job_desc)
-
-            # 🎯 Output
-            st.success(f"✅ Score: {result['score']}")
-            st.write(f"📌 Recommendation: {result['recommendation']}")
-            st.write(f"🧠 Explanation: {result['explanation']}")
-
-            st.write("🔍 Top Factors:")
-            for f in result["top_factors"]:
-                st.write(f"- {f}")
-
-            # 💾 Save to DB
-            insert_application(
-                {
-                    "name": name,
-                    "email": email,
-                    "skills": skills,
-                    "experience": experience,
-                    "education": education,
-                    "project": project
-                },
-                result["score"],
-                result["recommendation"]
-            )
-
-# ADMIN PAGE
+#  ADMIN PAGE 
 elif page == "Admin":
 
     st.header("🧑‍💼 Admin Dashboard")
 
-    # 📝 Job description input
-    st.subheader("📌 Set Job Description")
+    job_desc = get_job()
 
-    jd = st.text_area("Enter Job Description", value=get_job(), height=200)
+    #  JOB DESCRIPTION 
+    st.subheader("📌 Job Description")
+
+    jd = st.text_area("Set / Edit Job Description", value=job_desc if job_desc else "")
 
     if st.button("💾 Save Job Description"):
         save_job(jd)
-        st.success("Job description saved successfully!")
+        st.success("Job description saved!")
 
     st.markdown("---")
 
-    # 📊 Applications
-    st.subheader("📂 Applications Data")
-
+    #  APPLICATIONS 
     data = get_all_applications()
 
-    if data:
-        df = pd.DataFrame(data, columns=[
-            "ID", "Name", "Email", "Skills", "Experience",
-            "Education", "Project", "Score", "Recommendation"
+    if data and job_desc:
+
+        results = []
+
+        for row in data:
+
+            candidate = {
+                "name": row[1],
+                "email": row[2],
+                "skills": row[3],
+                "experience": row[4],
+                "education": row[5],
+                "project": row[6]
+            }
+
+            result = evaluate_with_llm(candidate, job_desc)
+
+            results.append([
+                candidate["name"],
+                candidate["email"],
+                result.get("score", 0),
+                result.get("recommendation", "N/A"),
+                result.get("explanation", "N/A")
+            ])
+
+        df = pd.DataFrame(results, columns=[
+            "Name", "Email", "Score", "Recommendation", "Explanation"
         ])
 
-        # 🏆 Ranking
         df = df.sort_values(by="Score", ascending=False)
 
-        st.write("### 🏆 Ranked Candidates")
+        st.subheader("🏆 Evaluated Candidates")
         st.dataframe(df, use_container_width=True)
 
-        # 📊 Charts
-        st.subheader("📊 Analytics")
+        st.subheader("📊 Score Distribution")
+        st.bar_chart(df["Score"])
 
-        col1, col2 = st.columns(2)
+        st.subheader("📌 Recommendation Breakdown")
+        st.bar_chart(df["Recommendation"].value_counts())
 
-        with col1:
-            st.write("### Score Distribution")
-            st.bar_chart(df["Score"])
-
-        with col2:
-            st.write("### Recommendation Breakdown")
-            st.bar_chart(df["Recommendation"].value_counts())
-
-        # 📥 CSV download
-        csv = df.to_csv(index=False).encode("utf-8")
-
-        st.download_button(
-            label="⬇️ Download CSV",
-            data=csv,
-            file_name="applications.csv",
-            mime="text/csv"
-        )
+    elif not job_desc:
+        st.warning("⚠️ Please set job description first")
 
     else:
         st.info("No applications submitted yet.")
