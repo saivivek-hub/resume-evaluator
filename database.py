@@ -8,12 +8,12 @@ def init_db():
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    # Applications table
+    # Applications table (NO UNIQUE constraint → safer for Streamlit)
     c.execute("""
         CREATE TABLE IF NOT EXISTS applications (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT,
-            email TEXT UNIQUE,
+            email TEXT,
             skills TEXT,
             experience INTEGER,
             education TEXT,
@@ -22,7 +22,7 @@ def init_db():
         )
     """)
 
-    # Job description table (single active job)
+    # Job table (single active job)
     c.execute("""
         CREATE TABLE IF NOT EXISTS job (
             id INTEGER PRIMARY KEY,
@@ -34,13 +34,17 @@ def init_db():
     conn.close()
 
 
-#  INSERT APPLICATION 
+#  SAFE INSERT 
 def insert_application(name, email, skills, experience, education, project, resume):
 
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
     try:
+        # prevent empty inserts
+        if not name or not email:
+            return
+
         c.execute("""
             INSERT INTO applications 
             (name, email, skills, experience, education, project, resume)
@@ -49,11 +53,11 @@ def insert_application(name, email, skills, experience, education, project, resu
 
         conn.commit()
 
-    except sqlite3.IntegrityError:
-        # prevents duplicate email crash
-        pass
+    except Exception as e:
+        print("Database Insert Error:", e)
 
-    conn.close()
+    finally:
+        conn.close()
 
 
 #  GET ALL APPLICATIONS 
@@ -75,7 +79,6 @@ def save_job(job_description):
     conn = sqlite3.connect(DB_NAME)
     c = conn.cursor()
 
-    # keep only one active job
     c.execute("DELETE FROM job")
 
     c.execute("""
