@@ -134,24 +134,24 @@ Clean admin-user separation
 Fully functional recruitment automation workflow
 
 ⚠️ Limitations
+  
+  Uses rule-based NLP instead of deep learning models
+  
+  No authentication layer implemented (scope for extension)
+  
+  Does not use semantic embeddings for similarity
 
-Rule-based NLP (not deep learning based)
+🔮Future Improvements
 
-Basic token matching instead of semantic embeddings
-
-No authentication security layer (can be added)
-
-🔮 Future Improvements
-
-Integration with BERT / Sentence Transformers
-
-Resume PDF parsing
-
-Email notifications
-
-Role-based authentication system
-
-Cloud deployment (Streamlit Cloud / AWS)
+  Integration with BERT / Sentence Transformers for semantic matching
+  
+  Resume parsing from PDF files
+  
+  Email notification system for recruiters and candidates
+  
+  Role-based authentication (Admin/User security layer)
+  
+  Cloud deployment using Streamlit Cloud or AWS
 
 📄 License
 
