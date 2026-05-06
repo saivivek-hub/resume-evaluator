@@ -1,5 +1,6 @@
 import streamlit as st
 import sqlite3
+import pandas as pd
 from pypdf import PdfReader
 
 from evaluator import evaluate_with_llm
@@ -9,7 +10,6 @@ from database import init_db, insert_application, get_all_applications, save_job
 init_db()
 
 st.set_page_config(page_title="ATS System", layout="wide")
-
 st.title("AI-Powered ATS System")
 
 if "admin_logged_in" not in st.session_state:
@@ -46,14 +46,10 @@ if page == "User":
 
         submitted = st.form_submit_button("Submit Application")
 
-    # ---------------- PROCESS AFTER SUBMIT ----------------
     if submitted:
-
-        st.write("Submit clicked")  # Debug
 
         resume_text = ""
 
-        # PDF extraction
         if uploaded_file is not None:
             try:
                 reader = PdfReader(uploaded_file)
@@ -64,7 +60,6 @@ if page == "User":
             except Exception as e:
                 st.error(f"PDF Error: {e}")
 
-        # Validation
         if not name.strip() or not email.strip():
             st.error("Name and Email are required")
 
@@ -85,7 +80,7 @@ if page == "User":
             if result is True:
                 st.success("Application submitted successfully")
             else:
-                st.error(f"Insertion failed : {result}")
+                st.error(f"Insertion failed: {result}")
 
 
 # ---------------- ADMIN PAGE ----------------
@@ -129,19 +124,6 @@ elif page == "Admin":
 
         if data and jd:
 
-            st.subheader("All Candidates")
-
-            for row in data:
-                st.write("Name:", row[1])
-                st.write("Email:", row[2])
-                st.write("Skills:", row[3])
-                st.write("Experience:", row[4])
-                st.write("Education:", row[5])
-                st.write("Project:", row[6])
-                st.markdown("---")
-
-            st.subheader("Ranked Candidates")
-
             results = []
 
             for row in data:
@@ -167,16 +149,33 @@ elif page == "Admin":
                     "Missing Skills": ", ".join(result.get("missing_skills", []))
                 })
 
-            results = sorted(results, key=lambda x: x["Score"], reverse=True)
+            # TABLE 
+            st.subheader("Ranked Candidates Summary")
 
-            for r in results:
-                st.write("Name:", r["Name"])
-                st.write("Email:", r["Email"])
-                st.write("Score:", r["Score"])
-                st.write("Recommendation:", r["Recommendation"])
-                st.write("Explanation:", r["Explanation"])
-                st.write("Missing Skills:", r["Missing Skills"])
-                st.markdown("---")
+            df = pd.DataFrame(results)
+            df = df.sort_values(by="Score", ascending=False).reset_index(drop=True)
+            df.insert(0, "Rank", df.index + 1)
+
+            st.dataframe(df, use_container_width=True)
+
+            #  SUMMARY 
+            st.subheader("Final Result Summary")
+
+            st.write(f"Total Candidates: {len(df)}")
+            st.write(f"Strong Hire: {len(df[df['Recommendation'] == 'Strong Hire'])}")
+            st.write(f"Shortlisted: {len(df[df['Recommendation'] == 'Shortlisted'])}")
+            st.write(f"Needs Review: {len(df[df['Recommendation'] == 'Needs Review'])}")
+            st.write(f"Not Shortlisted: {len(df[df['Recommendation'] == 'Not Shortlisted'])}")
+
+            #  BEST CANDIDATE 
+            st.subheader("Best Candidate")
+
+            top = df.iloc[0]
+
+            st.write(f"Name: {top['Name']}")
+            st.write(f"Score: {top['Score']}")
+            st.write(f"Recommendation: {top['Recommendation']}")
+            st.write(f"Explanation: {top['Explanation']}")
 
         else:
             st.info("No data available")
