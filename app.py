@@ -33,40 +33,46 @@ if page == "User":
 
     st.header("Candidate Application Form")
 
-    with st.form("application_form", clear_on_submit=True):
+    uploaded_file = st.file_uploader(
+        "Upload Resume (PDF)",
+        type=["pdf"]
+    )
 
-        uploaded_file = st.file_uploader("Upload Resume (PDF)", type=["pdf"])
+    if uploaded_file is not None:
 
-        name = st.text_input("Name")
-        email = st.text_input("Email")
-        skills = st.text_area("Skills")
-        experience = st.slider("Experience (years)", 0, 10)
+        with st.spinner("Parsing resume..."):
+            parsed = parse_resume(uploaded_file)
+
+        st.success("Resume parsed successfully")
+
+        name = st.text_input(
+            "Name",
+            value=parsed.get("name", "")
+        )
+
+        email = st.text_input(
+            "Email",
+            value=parsed.get("email", "")
+        )
+
+        skills = st.text_area(
+            "Skills",
+            value=parsed.get("skills", "")
+        )
+
+        experience = st.slider(
+            "Experience (years)",
+            0,
+            10,
+            1
+        )
+
         education = st.text_input("Education")
+
         project = st.text_area("Project Description")
 
-        submitted = st.form_submit_button("Submit Application")
+        if st.button("Submit Application"):
 
-    if submitted:
-
-        resume_text = ""
-
-        if uploaded_file is not None:
-            try:
-                reader = PdfReader(uploaded_file)
-                for page in reader.pages:
-                    text = page.extract_text()
-                    if text:
-                        resume_text += text
-            except Exception as e:
-                st.error(f"PDF Error: {e}")
-
-        if not name.strip() or not email.strip():
-            st.error("Name and Email are required")
-
-        elif is_duplicate(email):
-            st.warning("Duplicate candidate detected")
-
-        else:
             result = insert_application(
                 name,
                 email,
@@ -74,14 +80,13 @@ if page == "User":
                 experience,
                 education,
                 project,
-                resume_text
+                parsed.get("resume_text", "")
             )
 
             if result is True:
                 st.success("Application submitted successfully")
             else:
-                st.error(f"Insertion failed: {result}")
-
+                st.error(result)
 
 # ---------------- ADMIN PAGE ----------------
 elif page == "Admin":
