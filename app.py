@@ -75,10 +75,15 @@ if page == "User":
             1
         )
 
-        education = st.text_input("Education")
+education = st.text_input(
+    "Education",
+    value=parsed.get("education", "")
+)
 
-        project = st.text_area("Project Description")
-
+project = st.text_area(
+    "Project Description",
+    value=parsed.get("project", "")
+)
         if st.button("Submit Application"):
 
             result = insert_application(
