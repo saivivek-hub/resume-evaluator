@@ -5,6 +5,25 @@ def tokenize(text):
     return set(re.findall(r'\b\w+\b', text.lower()))
 
 
+IMPORTANT_SKILLS = {
+    "python",
+    "sql",
+    "machine",
+    "learning",
+    "tensorflow",
+    "pytorch",
+    "pandas",
+    "numpy",
+    "flask",
+    "django",
+    "api",
+    "aws",
+    "nlp",
+    "data",
+    "analysis"
+}
+
+
 def evaluate_with_llm(candidate, job_desc):
 
     skills = tokenize(candidate.get("skills", ""))
@@ -13,35 +32,25 @@ def evaluate_with_llm(candidate, job_desc):
 
     candidate_tokens = skills | project | resume
 
-    job_tokens = tokenize(job_desc)
-
     experience = candidate.get("experience", 0)
 
-    # ---------------- MATCHING ----------------
-    matched_skills = candidate_tokens & job_tokens
-    missing_skills = job_tokens - candidate_tokens
+    # ONLY IMPORTANT WORDS FROM JD
+    jd_tokens = tokenize(job_desc)
+    required_skills = jd_tokens & IMPORTANT_SKILLS
+
+    # MATCHES
+    matched_skills = candidate_tokens & required_skills
+    missing_skills = required_skills - candidate_tokens
 
     match_count = len(matched_skills)
 
-    if len(job_tokens) == 0:
-        match_ratio = 0
-    else:
-        match_ratio = match_count / len(job_tokens)
+    # ---------------- SCORE ----------------
+    score = 0
 
-    # ---------------- BASE SCORE ----------------
-    score = match_ratio * 70
+    # SKILL MATCH SCORE
+    score += match_count * 12
 
-    # ---------------- IMPORTANT TECH SKILLS ----------------
-    important_skills = {
-        "python", "sql", "machine", "learning",
-        "tensorflow", "pytorch", "pandas",
-        "numpy", "aws", "flask", "api"
-    }
-
-    strong_matches = len(candidate_tokens & important_skills)
-    score += strong_matches * 5
-
-    # ---------------- EXPERIENCE ----------------
+    # EXPERIENCE SCORE
     if experience >= 5:
         score += 20
     elif experience >= 3:
@@ -51,15 +60,19 @@ def evaluate_with_llm(candidate, job_desc):
     else:
         score += 2
 
-    # ---------------- PROJECT BONUS ----------------
-    project_bonus = len(project & important_skills)
-    score += project_bonus * 3
+    # PROJECT BONUS
+    project_matches = len(project & IMPORTANT_SKILLS)
+    score += project_matches * 5
 
-    # ---------------- PENALTY ----------------
-    if match_count <= 2:
-        score -= 15
+    # RESUME BONUS
+    resume_matches = len(resume & IMPORTANT_SKILLS)
+    score += resume_matches * 2
 
-    # ---------------- NORMALIZE ----------------
+    # PENALTY
+    if match_count <= 1:
+        score -= 20
+
+    # LIMIT SCORE
     score = max(0, min(100, round(score)))
 
     # ---------------- RECOMMENDATION ----------------
@@ -74,17 +87,17 @@ def evaluate_with_llm(candidate, job_desc):
 
     # ---------------- EXPLANATION ----------------
     if score >= 85:
-        explanation = "Excellent technical alignment with strong relevant experience."
+        explanation = "Excellent technical match with strong experience."
     elif score >= 70:
-        explanation = "Good match with required technical skills and project background."
+        explanation = "Good alignment with required skills."
     elif score >= 50:
-        explanation = "Partial alignment with some relevant skills present."
+        explanation = "Some relevant skills matched."
     else:
-        explanation = "Limited alignment with required job skills."
+        explanation = "Low match with required skills."
 
     return {
         "score": score,
         "recommendation": recommendation,
         "explanation": explanation,
-        "missing_skills": list(missing_skills)[:5]
+        "missing_skills": list(missing_skills)
     }
