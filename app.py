@@ -75,15 +75,16 @@ if page == "User":
             1
         )
 
-education = st.text_input(
-    "Education",
-    value=parsed.get("education", "")
-)
+        education = st.text_input(
+            "Education",
+            value=parsed.get("education", "")
+        )
 
-project = st.text_area(
-    "Project Description",
-    value=parsed.get("project", "")
-)
+        project = st.text_area(
+            "Project Description",
+            value=parsed.get("project", "")
+        )
+
         if st.button("Submit Application"):
 
             result = insert_application(
@@ -100,7 +101,6 @@ project = st.text_area(
                 st.success("Application submitted successfully")
             else:
                 st.error(result)
-
 # ---------------- ADMIN PAGE ----------------
 elif page == "Admin":
 
