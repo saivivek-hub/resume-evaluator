@@ -2,10 +2,17 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from pypdf import PdfReader
-from parser import parse_resume
 
 from evaluator import evaluate_with_llm
-from database import init_db, insert_application, get_all_applications, save_job, get_job
+from database import (
+    init_db,
+    insert_application,
+    get_all_applications,
+    save_job,
+    get_job
+)
+
+from parser import parse_resume
 
 # ---------------- INIT ----------------
 init_db()
