@@ -1,96 +1,90 @@
+import re
+
+
 def tokenize(text):
-    return set(text.lower().split())
+    return set(re.findall(r'\b\w+\b', text.lower()))
 
 
 def evaluate_with_llm(candidate, job_desc):
 
-    #  INPUTS 
     skills = tokenize(candidate.get("skills", ""))
     project = tokenize(candidate.get("project", ""))
+    resume = tokenize(candidate.get("resume", ""))
+
+    candidate_tokens = skills | project | resume
+
     job_tokens = tokenize(job_desc)
 
     experience = candidate.get("experience", 0)
 
-    factors = []
+    # ---------------- MATCHING ----------------
+    matched_skills = candidate_tokens & job_tokens
+    missing_skills = job_tokens - candidate_tokens
 
-    # CORE MATCH 
+    match_count = len(matched_skills)
+
     if len(job_tokens) == 0:
-        job_tokens = {"general"}
+        match_ratio = 0
+    else:
+        match_ratio = match_count / len(job_tokens)
 
-    skill_project_union = skills | project
+    # ---------------- BASE SCORE ----------------
+    score = match_ratio * 70
 
-    match_count = len(job_tokens & skill_project_union)
-    match_ratio = match_count / len(job_tokens)
-
-    # Balanced scoring curve (FIXED FAIRNESS)
-    score = match_ratio * 65
-
-    factors.append(f"{match_count} relevant keyword matches")
-
-    #  SKILL STRENGTH BOOST 
-    strong_skills = {
-        "python", "machine", "learning", "nlp",
-        "tensorflow", "pytorch", "sql", "aws", "data"
+    # ---------------- IMPORTANT TECH SKILLS ----------------
+    important_skills = {
+        "python", "sql", "machine", "learning",
+        "tensorflow", "pytorch", "pandas",
+        "numpy", "aws", "flask", "api"
     }
 
-    strong_match = len(job_tokens & strong_skills & skills)
-    score += strong_match * 4
+    strong_matches = len(candidate_tokens & important_skills)
+    score += strong_matches * 5
 
-    if strong_match > 0:
-        factors.append("Strong technical skill alignment")
-
-    # EXPERIENCE (FAIR SCALING) 
-    if experience <= 0:
-        score += 5
-        factors.append("Fresher level considered (no penalty)")
-    elif experience <= 2:
-        score += 10
-        factors.append("Junior experience")
-    elif experience <= 5:
-        score += 15
-        factors.append("Mid-level experience")
-    else:
+    # ---------------- EXPERIENCE ----------------
+    if experience >= 5:
         score += 20
-        factors.append("Senior experience")
+    elif experience >= 3:
+        score += 15
+    elif experience >= 1:
+        score += 8
+    else:
+        score += 2
 
-    # PROJECT QUALITY 
-    project_overlap = len(project & job_tokens)
-    score += project_overlap * 3
+    # ---------------- PROJECT BONUS ----------------
+    project_bonus = len(project & important_skills)
+    score += project_bonus * 3
 
-    if project_overlap > 0:
-        factors.append("Relevant project experience")
+    # ---------------- PENALTY ----------------
+    if match_count <= 2:
+        score -= 15
 
-    #  BONUS FOR STRONG CANDIDATES 
-    if match_ratio > 0.6 and experience >= 2:
-        score += 10
-        factors.append("High overall profile strength")
-
-    #  FINAL NORMALIZATION 
+    # ---------------- NORMALIZE ----------------
     score = max(0, min(100, round(score)))
 
-    #   DECISION 
-    if score >= 80:
+    # ---------------- RECOMMENDATION ----------------
+    if score >= 85:
         recommendation = "Strong Hire"
-    elif score >= 65:
+    elif score >= 70:
         recommendation = "Shortlisted"
-    elif score >= 45:
+    elif score >= 50:
         recommendation = "Needs Review"
     else:
         recommendation = "Not Shortlisted"
 
-    #   EXPLANATION 
-    if score >= 80:
-        explanation = "Excellent match with job requirements and strong technical alignment."
-    elif score >= 65:
-        explanation = "Good alignment with job requirements and relevant skill set."
-    elif score >= 45:
-        explanation = "Partial match with job requirements, some key skills missing."
+    # ---------------- EXPLANATION ----------------
+    if score >= 85:
+        explanation = "Excellent technical alignment with strong relevant experience."
+    elif score >= 70:
+        explanation = "Good match with required technical skills and project background."
+    elif score >= 50:
+        explanation = "Partial alignment with some relevant skills present."
     else:
-        explanation = "Low alignment with job requirements and limited relevant skills."
+        explanation = "Limited alignment with required job skills."
 
     return {
         "score": score,
         "recommendation": recommendation,
         "explanation": explanation,
-        "top_factors": factors[:4]
+        "missing_skills": list(missing_skills)[:5]
     }
