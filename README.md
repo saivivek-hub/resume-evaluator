@@ -35,16 +35,7 @@ Upload resume directly (PDF)
 
 Automatic extraction of:
 
-Name
-
-Email
-
-Skills
-
-Education
-
-Projects
-
+Name, Email, Skills, Education, Projects
 Submit applications without manual data entry
 
 AI-driven profile evaluation
@@ -71,58 +62,25 @@ AI / NLP Evaluation Logic
 The system uses a lightweight AI-inspired NLP evaluation pipeline.
 
 
-NLP Processing
+NLP Processing,  Resume text extraction from PDFs, Tokenization and normalization, Technical skill extraction,  Job-description keyword matching, Resume-project-skill aggregation
 
-Resume text extraction from PDFs
-
-Tokenization and normalization
-
-Technical skill extraction
-
-Job-description keyword matching
-
-Resume-project-skill aggregation
 
 Intelligent Scoring System
 
 The scoring engine evaluates candidates based on:
 
-
 Technical Skill Matching
 
 Matches important technical keywords such as:
 
+Python, SQL, Machine Learning, TensorFlow, AWS, NLP, APIs, Pandas, NumPy
 
-
-Python
-
-SQL
-
-Machine Learning
-
-TensorFlow
-
-AWS
-
-NLP
-
-APIs
-
-Pandas
-
-NumPy
 
 Experience Weighting
 
 Experience contributes dynamically to the final score:
 
-Fresher
-
-Junior
-
-Mid-level
-
-Senior
+Fresher, Junior, Mid-level, Senior
 
 Project Relevance
 
