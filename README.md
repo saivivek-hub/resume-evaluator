@@ -154,10 +154,8 @@ Installation & Setup
 1. Clone Repository
 
 
-git clone https://github.com/saivivek-hub/application-screening.git
+git clone https://github.com/saivivek-hub/resume-evaluator
 
-
-cd application-screening
 
 2. Install Dependencies
 
